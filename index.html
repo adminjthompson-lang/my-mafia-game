@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omerta Clone - Browser Prototype</title>
+<style>
+/* --- MAFIA DARK THEME --- */
+body { background-color: #0f0f0f; color: #b0b0b0; font-family: Tahoma, sans-serif; margin: 0; 
+padding: 0; font-size: 12px; }
+/* Layout */
+.container { max-width: 900px; margin: 20px auto; display: ﬂex; gap: 10px; }
+/* Left Sidebar (Stats) */
+.sidebar { width: 200px; background: #1a1a1a; border: 1px solid #333; padding: 10px; }
+.stat-group { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+.stat-title { color: #d63031; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; 
+font-size: 10px; }
+.stat-row { display: ﬂex; justify-content: space-between; margin-bottom: 3px; }
+.val { color: #fff; font-weight: bold; }
+.highlight { color: #00b894; }
+
+
+/* Main Content */
+.main-panel { ﬂex: 1; background: #161616; border: 1px solid #333; padding: 10px; }
+/* Navigation */
+
+
+.nav { background: #222; border-bottom: 2px solid #d63031; padding: 10px; display:
+ﬂex; gap: 10px; }
+.nav a { color: #bbb; text-decoration: none; padding: 5px 10px; background: #333; border: 1px solid 
+#444; cursor: pointer; }
+.nav a:hover, .nav a.active { background: #d63031; color: #fff; border-color: #d63031; }
+
+
+/* Tables (Player List) */
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th { background: #333; color: #fff; text-align: left; padding: 8px; font-size: 11px; } td { 
+border-bottom: 1px solid #222; padding: 8px; }
+tr:hover { background: #1f1f1f; }
+
+
+/* Action Buttons */
+.btn { background: #d63031; color: white; border: none; padding: 5px 10px; cursor: pointer; 
+font-size: 10px; text-transform: uppercase; }
+.btn:hover { background: #ff7675; }
+.btn:disabled { background: #444; cursor: not-allowed; }
+
+
+/* Login Screen */
+#login-screen { position: ﬁxed; top: 0; left: 0; width: 100%; height: 100%; background: #000; 
+z-index: 100; display: ﬂex; align-items: center; justify-content: center; ﬂex-direction: column; }
+.login-box { background: #1a1a1a; padding: 30px; border: 2px solid #d63031; text-align: center; 
+width: 300px; }
+input[type="text"] { width: 90%; padding: 10px; margin-bottom: 10px; background: #333; border: 1px 
+solid #555; color: white; }
+
+
+/* Views */
+.view { display: none; }
+
+
+.view.active { display: block; }
+
+
+.timer-msg { background: #2d3436; color: #dfe6e9; padding: 5px; text-align: center; font-size: 
+10px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+
+<div id="login-screen">
+<div class="login-box">
+<h2 style="color: #d63031; margin-top: 0;">OMERTA CLONE</h2>
+<p>Enter your Gangster Name:</p>
+<input type="text" id="username-input" placeholder="e.g. Al Capone">
+<button class="btn" style="width: 100%; padding: 10px;" onclick="startGame()">Create 
+Account</button>
+</div>
+</div>
+
+
+<div class="container" id="game-ui" style="ﬁlter: blur(5px);"> <div class="sidebar">
+<div style="text-align: center; margin-bottom: 15px;">
+<img src="https://placehold.co/100x100/333/d63031?text=Avatar" style="border: 2px solid #555;">
+<div id="display-name" style="font-weight: bold; color: white; margin-top: 5px;">Player</div>
+<div id="display-rank" style="color: #888;">Empty Suit</div>
+</div>
+
+
+<div class="stat-group">
+<div class="stat-title">Resources</div>
+
+
+<div class="stat-row"><span>Cash:</span> <span class="val highlight" id="stat-cash">$0</span></div>
+<div class="stat-row"><span>Bullets:</span> <span class="val" id="stat-bullets">0</span></div>
+</div>
+
+
+<div class="stat-group">
+<div class="stat-title">Time / Energy</div>
+<div class="stat-row"><span>Turns:</span> <span class="val" id="stat-turns">100</span></div>
+<div class="stat-row"><span>Health:</span> <span class="val" id="stat-hp">100%</span></div>
+<div class="stat-row"><span>Next Tick:</span> <span class="val" 
+id="timer-countdown">10s</span></div>
+</div>
+</div>
+
+
+<div class="main-panel">
+<div class="timer-msg">
+SERVER TICK: You receive <strong>10 Turns</strong> and
+<strong>$500</strong> every <span id="tick-speed">10</span> seconds.
+</div>
+
+
+<div class="nav">
+<a onclick="switchView('crimes')" class="active">Crimes</a>
+<a onclick="switchView('users')">Kill List (Players)</a>
+<a onclick="switchView('market')">Black Market</a>
+</div>
+
+
+<div id="view-crimes" class="view active">
+
+
+<h3>Commit Crimes</h3>
+<p>Use your turns to earn money.</p>
+<table>
+<thead>
+<tr>
+<th>Crime</th>
+<th>Cost</th>
+<th>Reward</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mug a Passerby</td>
+<td>2 Turns</td>
+<td>$50 - $100</td>
+<td><button class="btn" onclick="doCrime(2, 50, 100)">Do It</button></td>
+</tr>
+<tr>
+<td>Rob a Taxi</td>
+<td>5 Turns</td>
+<td>$200 - $400</td>
+<td><button class="btn" onclick="doCrime(5, 200, 400)">Do It</button></td>
+</tr>
+<tr>
+<td>Smuggle Booze</td>
+<td>10 Turns</td>
+
+
+<td>$1,000 - $2,000</td>
+<td><button class="btn" onclick="doCrime(10, 1000, 2000)">Do It</button></td>
+</tr>
+</tbody>
+</table>
+<div id="crime-log" style="margin-top: 20px; color: #888; font-style: italic;"></div>
+</div>
+
+
+<div id="view-users" class="view">
+<h3>Local Gangsters</h3>
+<p>Spend <strong>50 Turns</strong> to attack other players. You need bullets!</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Rank</th>
+<th>Status</th>
+<th>Attack</th>
+</tr>
+</thead>
+<tbody id="player-table-body">
+</tbody>
+</table>
+<div id="attack-log" style="margin-top: 20px; color: #d63031; font-weight: bold;"></div>
+</div>
+
+
+<div id="view-market" class="view">
+<h3>Black Market</h3>
+<p>Buy bullets to attack other players.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Price</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10 Bullets</td>
+<td>$500</td>
+<td><button class="btn" onclick="buyBullets(10, 500)">Buy</button></td>
+</tr>
+<tr>
+<td>100 Bullets</td>
+<td>$4,500</td>
+<td><button class="btn" onclick="buyBullets(100, 4500)">Buy</button></td>
+</tr>
+<tr>
+<td>Doctor (Full Heal)</td>
+<td>$1,000</td>
+<td><button class="btn" onclick="healPlayer()">Buy</button></td>
+
+
+</tr>
+</tbody>
+</table>
+</div>
+
+
+</div>
+</div>
+
+
+<script>
+// --- GAME LOGIC ---
+
+
+// Conﬁg
+const TICK_TIME = 10; // Seconds between points (Speeded up for testing. Real game is 600s/10mins)
+let countdown = TICK_TIME;
+
+
+// Player Data let player = {
+name: "Guest", cash: 500,
+bullets: 0,
+turns: 50,
+hp: 100,
+rank: "Empty Suit"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+};
+
+
+// Fake "Other Players" (Bots) let bots = [
+
+
+{ name: "DonVito", rank: "Godfather", hp: 1000, dead: false },
+{ name: "TonyMontana", rank: "Capo", hp: 100, dead: false },
+{ name: "LuckyLuciano", rank: "Thief", hp: 60, dead: false },
+{ name: "Bugsy", rank: "Empty Suit", hp: 30, dead: false }
+];
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startGame() {
+const nameInput = document.getElementById('username-input').value; if(nameInput.trim() === "") 
+return alert("Enter a name!");
+
+player.name = nameInput;
+document.getElementById('login-screen').style.display = 'none'; 
+document.getElementById('game-ui').style.ﬁlter = 'none';
+
+updateUI(); renderBots();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Start the Server Tick setInterval(gameTick, 1000);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// The "Server" Tick - Runs every second function gameTick() {
+countdown--;
+document.getElementById('timer-countdown').innerText = countdown + "s";
+
+
+if (countdown <= 0) {
+// REWARD TIME
+
+
+player.turns += 10;
+player.cash += 500; // Passive income countdown = TICK_TIME; // Reset timer
+
+// Visual Flash
+const timerMsg = document.querySelector('.timer-msg'); timerMsg.style.background = "#00b894";
+setTimeout(() => { timerMsg.style.background = "#2d3436"; }, 500);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+updateUI();
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function doCrime(cost, minReward, maxReward) {
+if (player.hp <= 0) return alert("You are dead/hospitalized!");
+if (player.turns < cost) return alert("Not enough turns! Wait for the timer.");
+
+
+player.turns -= cost;
+const reward = Math.ﬂoor(Math.random() * (maxReward - minReward + 1)) + minReward;
+player.cash += reward;
+
+
+document.getElementById('crime-log').innerText = `Success! You earned
+$${reward}.`;
+updateUI();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+function buyBullets(amount, cost) { if (player.cash >= cost) {
+
+
+player.cash -= cost; player.bullets += amount; updateUI();
+} else {
+alert("You need more money! Do crimes.");
+
+
+
+
+
+
+
+
+
+
+
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function healPlayer() {
+if (player.cash >= 1000) { player.cash -= 1000;
+player.hp = 100; updateUI();
+} else {
+alert("You need $1000.");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function attackBot(index) { const bot = bots[index];
+const cost = 50; // Turns to attack
+
+
+if (player.turns < cost) return alert("You need 50 turns to plan a hit."); if (player.bullets < 10) 
+return alert("You need at least 10 bullets.");
+
+// Execute Attack player.turns -= cost;
+
+
+// Simple Combat Logic
+const bulletsFired = Math.min(player.bullets, 50); // Fire max 50 bullets player.bullets -= 
+bulletsFired;
+
+const damage = bulletsFired * 2; // 2 Damage per bullet bot.hp -= damage;
+
+let logMsg = `You ﬁred ${bulletsFired} bullets and dealt ${damage} damage!`;
+
+
+if (bot.hp <= 0) { bot.hp = 0; bot.dead = true;
+logMsg += ` You KILLED ${bot.name}! You stole their wallet ($5,000).`; player.cash += 5000;
+} else {
+// Bot shoots back! player.hp -= 10;
+logMsg += ` They shot back! You lost 10% HP.`;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+document.getElementById('attack-log').innerText = logMsg; updateUI();
+renderBots(); // Refresh table
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function renderBots() {
+const tbody = document.getElementById('player-table-body'); tbody.innerHTML = "";
+
+
+bots.forEach((bot, index) => {
+const tr = document.createElement('tr');
+
+
+let actionHTML = ""; if (bot.dead) {
+actionHTML = `<span style="color:red;">DEAD</span>`;
+} else {
+actionHTML = `<button class="btn" onclick="attackBot(${index})">SHOOT (50T)</button>`;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tr.innerHTML = `
+<td>${bot.name}</td>
+<td>${bot.rank}</td>
+<td>${bot.dead ? "RIP" : "Alive: " + bot.hp + "HP"}</td>
+<td>${actionHTML}</td>
+`; tbody.appendChild(tr);
+});
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function updateUI() {
+document.getElementById('display-name').innerText = player.name; 
+document.getElementById('stat-cash').innerText = "$" +
+player.cash.toLocaleString();
+document.getElementById('stat-bullets').innerText = player.bullets; 
+document.getElementById('stat-turns').innerText = player.turns; 
+document.getElementById('stat-hp').innerText = player.hp + "%";
+
+}
+function switchView(viewId) {
+// Hide all views
+document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+// Remove active class from nav
+document.querySelectorAll('.nav a').forEach(el => el.classList.remove('active'));
+
+
+
+
+
+
+
+
+
+
+// Show selected
+document.getElementById('view-' + viewId).classList.add('active'); 
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
